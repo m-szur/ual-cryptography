@@ -2,17 +2,17 @@ from crypto.admin import Admin
 from crypto.certificate_service import CertificateService
 from constants import *
 from crypto.header import *
+from crypto.hamming.hamming_utils import hamming74
 
-
-from Crypto.Random import get_random_bytes
 from utils.file_utils import *
 from crypto.aes import *
 from crypto.rsa import *
 from coding import *
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import messagebox, simpledialog
 
 users = []
+
 
 def main():
     #
@@ -21,10 +21,12 @@ def main():
     def show_main_menu():
         create_user_button.pack()
         enter_app_button.pack()
+        hamming_button.pack()
         
     def forget_main_menu():
         create_user_button.forget()
         enter_app_button.forget()
+        hamming_button.forget()
         
     def show_app_menu():
         # need to create buttons because of .destroy() in forget_app_menu()
@@ -47,12 +49,47 @@ def main():
     
     def enter_app():
         forget_main_menu()
+        current_screen.set("APP")
         show_app_menu()
         
     def enter_main_menu():
-        forget_app_menu()
+        if(current_screen.get() == "APP"):
+            forget_app_menu()
+        elif(current_screen.get() == "HAMMING"):
+            forget_hamming_menu()
+
+        current_screen.set("MAIN")
         show_main_menu()
-        
+
+    def enter_hamming_menu():
+        current_screen.set("HAMMING")
+        forget_main_menu()
+        go_back_to_menu_button.pack(anchor=tk.W) 
+        entry_label.pack(pady=5)
+        entry.pack(pady=5)
+        ready_button.pack(pady=5)
+
+    def forget_hamming_menu():
+        entry_label.forget()
+        entry.forget()
+        ready_button.forget()
+        result_label.forget()
+        go_back_to_menu_button.forget()
+
+    def process_hamming():
+        input_text = entry.get()
+        try:
+            encoded_message, encoded_with_errors, decoded, errors_found = hamming74(input_text)
+        except ValueError as e:
+            messagebox.showerror("Input is not a bit string", e)
+            return
+        except Exception as e:
+            messagebox.showerror("Error", e)
+            return
+        # display results
+        result_label.pack(pady=10)
+        result_label.config(text=f"Encoded message: {encoded_message}\nEncoded message with errors: {encoded_with_errors}\nDecoded message: {decoded}\nErrors found and corrected: {errors_found}")
+
     def show_encrypt_menu():
         forget_app_menu()
         
@@ -211,6 +248,7 @@ def main():
     # widgets for main menu
     create_user_button = tk.Button(window, text="Create new user", command=create_user)
     enter_app_button = tk.Button(window, text="Enter app", command=enter_app)
+    hamming_button = tk.Button(window, text="Hamming", command=enter_hamming_menu)
 
     # widgets for app
     go_back_to_menu_button = tk.Button(window, text="Go back to main menu", command=enter_main_menu)
@@ -235,8 +273,17 @@ def main():
     choose_private_key = tk.Button(window, text="Choose private key", command=choose_key)
     go_back_to_app_button_from_decrypt = tk.Button(window, text="Go back", command=go_back_to_app)
     decrypt_button2 = tk.Button(window, text="Decrypt", command=decrypt)
-    show_main_menu()
+
+    #widgets for hamming
+    entry_label = tk.Label(window, text="Enter bit string :")
+    entry = tk.Entry(window, width=40)
+    ready_button = tk.Button(window, text="Encode", command=process_hamming)
+    result_label = tk.Label(window, text="Resuls: ", justify=tk.RIGHT, anchor='w')
     
+    
+    #run the app
+    current_screen = tk.StringVar(value="MAIN")
+    show_main_menu()
     window.mainloop()
     
 if __name__ == '__main__':
